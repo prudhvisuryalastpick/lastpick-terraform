@@ -78,6 +78,11 @@ jobs:
             echo "stream: $S"
             aws logs get-log-events --log-group-name /lastpick/$svc --log-stream-name "$S" --start-from-head --limit 40 --query 'events[].message' --output text 2>&1 | tr '\t' '\n' | head -40
           done
+          echo "===== certificate status"
+          aws acm list-certificates --query 'CertificateSummaryList[].{domain:DomainName,status:Status}' --output table
+          echo "===== e-mail domain status"
+          aws sesv2 get-email-identity --email-identity lastpick.in --query '{verified:VerifiedForSendingStatus,dkim:DkimAttributes.Status}' --output table || true
+          aws sesv2 get-account --query '{productionAccess:ProductionAccessEnabled,sending:SendingEnabled}' --output table || true
           echo "===== images in ECR"
           aws ecr describe-images --repository-name lastpick --query 'reverse(sort_by(imageDetails,&imagePushedAt))[:3].{tags:imageTags,digest:imageDigest,pushed:imagePushedAt}' --output json
           echo "===== customer task definition (image + command)"
