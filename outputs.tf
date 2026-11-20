@@ -1,14 +1,14 @@
 output "customer_url" {
   description = "Customer web app"
-  value       = "https://${aws_cloudfront_distribution.site["customer"].domain_name}"
+  value       = var.use_cloudfront ? "https://${aws_cloudfront_distribution.site["customer"].domain_name}" : aws_apigatewayv2_stage.site["customer"].invoke_url
 }
 output "partner_url" {
   description = "Partner (business) web app"
-  value       = "https://${aws_cloudfront_distribution.site["partner"].domain_name}"
+  value       = var.use_cloudfront ? "https://${aws_cloudfront_distribution.site["partner"].domain_name}" : aws_apigatewayv2_stage.site["partner"].invoke_url
 }
 output "admin_url" {
   description = "Admin panel"
-  value       = "https://${aws_cloudfront_distribution.site["admin"].domain_name}"
+  value       = var.use_cloudfront ? "https://${aws_cloudfront_distribution.site["admin"].domain_name}" : aws_apigatewayv2_stage.site["admin"].invoke_url
 }
 output "deploy_role_arn" {
   description = "Put this in the GitHub repo variable AWS_DEPLOY_ROLE_ARN"

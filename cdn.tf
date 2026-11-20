@@ -36,7 +36,8 @@ resource "aws_cloudfront_cache_policy" "feeds" {
 }
 
 resource "aws_cloudfront_distribution" "site" {
-  for_each        = var.services
+  # off until AWS verifies the account for CloudFront; API Gateway (apigw.tf) serves the sites meanwhile
+  for_each        = var.use_cloudfront ? var.services : {}
   enabled         = true
   comment         = "LastPick ${each.key}"
   http_version    = "http2and3"

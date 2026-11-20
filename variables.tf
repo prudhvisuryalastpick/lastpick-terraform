@@ -103,3 +103,9 @@ variable "name" {
   type        = string
   default     = "lastpick"
 }
+
+variable "use_cloudfront" {
+  description = "true = CloudFront websites (needs an AWS account verified for CloudFront). false = API Gateway https addresses instead."
+  type        = bool
+  default     = false
+}
