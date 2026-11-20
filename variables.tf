@@ -109,3 +109,15 @@ variable "use_cloudfront" {
   type        = bool
   default     = false
 }
+
+variable "domain" {
+  description = "Your domain (bought at GoDaddy). Sites: www.<domain> (customers), partner.<domain>, admin.<domain>. Empty = no custom domain."
+  type        = string
+  default     = "lastpick.in"
+}
+
+variable "domain_ready" {
+  description = "Set true after the certificate's DNS records are added at GoDaddy and AWS shows the certificate as Issued."
+  type        = bool
+  default     = false
+}

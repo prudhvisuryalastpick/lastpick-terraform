@@ -32,6 +32,7 @@ jobs:
       TF_VAR_alert_email: ${{ vars.ALERT_EMAIL || 'prudhvisuryalastpick@gmail.com' }}
       # test setup: false lets "destroy" remove everything, database included
       TF_VAR_protect_data: ${{ vars.PROTECT_DATA || 'false' }}
+      TF_VAR_domain_ready: ${{ vars.DOMAIN_READY || 'false' }}
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
@@ -71,7 +72,7 @@ jobs:
         if: inputs.action == 'apply'
         run: |
           terraform apply -input=false -auto-approve tfplan
-          { echo '### Addresses'; echo '```'; terraform output -no-color customer_url partner_url admin_url deploy_role_arn 2>/dev/null; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          { echo '### Addresses'; echo '```'; for o in customer_url partner_url admin_url deploy_role_arn; do echo "$o = $(terraform output -raw $o 2>/dev/null)"; done; echo; echo 'DNS records to add at GoDaddy:'; terraform output -json dns_records_to_add 2>/dev/null | jq -r '.[] | "\(.type)  \(.name)  ->  \(.value)   (\(.purpose))"'; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           terraform output -json | jq 'with_entries(select(.value.sensitive|not) | .value = .value.value)' > outputs.json
 
       - name: Destroy

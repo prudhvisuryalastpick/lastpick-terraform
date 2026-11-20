@@ -65,9 +65,10 @@ resource "aws_apigatewayv2_stage" "site" {
   }
 }
 
-# Public address of each site: CloudFront when it's on, otherwise API Gateway.
+# Public address of each site: your domain when ready, else CloudFront when on, else the API Gateway address.
 locals {
   site_url = { for k in keys(var.services) : k => try(
+    "https://${aws_apigatewayv2_domain_name.site[k].domain_name}",
     "https://${aws_cloudfront_distribution.site[k].domain_name}",
     trimsuffix(aws_apigatewayv2_stage.site[k].invoke_url, "/"),
   ) }
