@@ -1,16 +1,17 @@
 # Custom domain on API Gateway, in two steps (the domain's DNS lives at GoDaddy):
 #  1. apply with domain_ready = false: AWS creates a free certificate and prints the DNS records
 #     (output dns_records_to_add). Add them at GoDaddy; AWS issues the certificate within minutes.
-#  2. apply with domain_ready = true: the sites move to www./partner./admin.<domain>; add the 3 CNAMEs printed.
+#  2. apply with domain_ready = true: the sites move to customer./partner./admin.<domain>; add the 3 CNAMEs printed.
+#     www.<domain> is on the certificate too, so it can later point at the customer site.
 locals {
-  hosts = { customer = "www", partner = "partner", admin = "admin" }
+  hosts = { customer = "customer", partner = "partner", admin = "admin" }
   use_domain = var.domain != "" && !var.use_cloudfront
 }
 
 resource "aws_acm_certificate" "site" {
   count                     = local.use_domain ? 1 : 0
-  domain_name               = "www.${var.domain}"
-  subject_alternative_names = ["partner.${var.domain}", "admin.${var.domain}"]
+  domain_name               = "customer.${var.domain}"
+  subject_alternative_names = ["partner.${var.domain}", "admin.${var.domain}", "www.${var.domain}"]
   validation_method         = "DNS"
   lifecycle { create_before_destroy = true }
 }

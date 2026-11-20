@@ -111,7 +111,7 @@ variable "use_cloudfront" {
 }
 
 variable "domain" {
-  description = "Your domain (bought at GoDaddy). Sites: www.<domain> (customers), partner.<domain>, admin.<domain>. Empty = no custom domain."
+  description = "Your domain (bought at GoDaddy). Sites: customer.<domain>, partner.<domain>, admin.<domain>. Empty = no custom domain."
   type        = string
   default     = "lastpick.in"
 }
