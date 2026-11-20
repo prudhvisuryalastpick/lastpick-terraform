@@ -112,6 +112,7 @@ resource "aws_ecs_task_definition" "service" {
     stopTimeout            = 20 # time to finish requests in flight on deploys and scale-in
     environment = [
       { name = "SERVICE", value = each.key },
+      { name = "SIGNUP", value = each.key == "admin" ? "closed" : "open" }, # customers and partners can create accounts
       { name = "WEB_DIR", value = "/app/web/dist-${local.web_variant[each.key]}" },
       { name = "NODE_ENV", value = "production" },
       { name = "PORT", value = "8080" },
