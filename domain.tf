@@ -35,6 +35,7 @@ resource "aws_apigatewayv2_api_mapping" "site" {
 output "dns_records_to_add" {
   description = "Add these CNAME records at GoDaddy (DNS > Add record). Name is without .<domain>."
   value = concat(
+    local.dkim_records,
     local.use_domain ? [for o in aws_acm_certificate.site[0].domain_validation_options : {
       purpose = "certificate check for ${o.domain_name}"
       type    = "CNAME"

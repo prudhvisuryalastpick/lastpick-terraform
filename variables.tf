@@ -121,3 +121,9 @@ variable "domain_ready" {
   type        = bool
   default     = false
 }
+
+variable "email_ready" {
+  description = "Set true once SES shows the domain as verified and production access is granted: sign-up then requires an e-mailed code."
+  type        = bool
+  default     = false
+}
