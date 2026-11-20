@@ -42,8 +42,8 @@ resource "aws_apigatewayv2_integration" "site" {
   request_parameters = {
     "overwrite:header.X-LastPick-Service" = each.key
     "overwrite:header.X-Origin-Verify"    = random_password.origin.result
-    # the visitor's IP, as CloudFront would send it (the load balancer appends one more hop)
-    "overwrite:header.X-Forwarded-For" = "$context.identity.sourceIp"
+    # the visitor's IP (API Gateway doesn't allow changing X-Forwarded-For); the app reads X-Client-IP
+    "overwrite:header.X-Client-IP" = "$context.identity.sourceIp"
   }
 }
 
