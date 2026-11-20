@@ -147,9 +147,9 @@ resource "aws_ssm_parameter" "deploy" {
     seedTask      = aws_ecs_task_definition.service["admin"].family
     subnets       = aws_subnet.public[*].id
     securityGroup = aws_security_group.app.id
-    customerUrl   = "https://${aws_cloudfront_distribution.site["customer"].domain_name}"
-    partnerUrl    = "https://${aws_cloudfront_distribution.site["partner"].domain_name}"
-    adminUrl      = "https://${aws_cloudfront_distribution.site["admin"].domain_name}"
+    customerUrl   = local.site_url["customer"]
+    partnerUrl    = local.site_url["partner"]
+    adminUrl      = local.site_url["admin"]
   })
 }
 

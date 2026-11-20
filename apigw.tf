@@ -64,3 +64,11 @@ resource "aws_apigatewayv2_stage" "site" {
     throttling_burst_limit = each.key == "admin" ? 40 : 400
   }
 }
+
+# Public address of each site: CloudFront when it's on, otherwise API Gateway.
+locals {
+  site_url = { for k in keys(var.services) : k => try(
+    "https://${aws_cloudfront_distribution.site[k].domain_name}",
+    trimsuffix(aws_apigatewayv2_stage.site[k].invoke_url, "/"),
+  ) }
+}

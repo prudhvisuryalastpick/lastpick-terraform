@@ -68,8 +68,9 @@ resource "aws_db_parameter_group" "main" {
   name   = "${var.name}-pg16"
   family = "postgres16"
   parameter {
-    name  = "rds.force_ssl" # TLS required
-    value = "1"
+    name         = "rds.force_ssl" # TLS required
+    value        = "1"
+    apply_method = "pending-reboot"
   }
   parameter {
     name  = "log_min_duration_statement" # log queries slower than 1 s
