@@ -29,7 +29,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: ap-south-1
       TF_IN_AUTOMATION: "1"
-      TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+      TF_VAR_alert_email: ${{ vars.ALERT_EMAIL || 'prudhvisuryalastpick@gmail.com' }}
       # test setup: false lets "destroy" remove everything, database included
       TF_VAR_protect_data: ${{ vars.PROTECT_DATA || 'false' }}
     steps:
