@@ -12,7 +12,7 @@ on:
       action:
         description: "plan, apply or destroy"
         type: choice
-        options: [plan, apply, destroy]
+        options: [plan, apply, destroy, diagnose]
         default: plan
       confirm:
         description: 'Type "yes" for apply, "destroy" for destroy'
@@ -64,8 +64,20 @@ jobs:
       - name: Init
         run: terraform init -input=false -backend-config="bucket=$BUCKET" -backend-config="key=lastpick/terraform.tfstate" -backend-config="region=ap-south-1" -backend-config="encrypt=true" -backend-config="use_lockfile=true"
 
+      - name: Diagnose (read-only)
+        if: inputs.action == 'diagnose'
+        run: |
+          for svc in customer partner admin; do
+            echo "===== $svc: last stopped tasks"
+            for t in $(aws ecs list-tasks --cluster lastpick --service-name $svc --desired-status STOPPED --max-items 2 --query 'taskArns[]' --output text | grep -v None); do
+              aws ecs describe-tasks --cluster lastpick --tasks $t --query 'tasks[].{stopped:stoppedReason,containers:containers[].{name:name,exit:exitCode,reason:reason}}' --output json
+            done
+            echo "===== $svc: last log lines"
+            aws logs filter-log-events --log-group-name /lastpick/$svc --start-time $(( ($(date +%s) - 3600) * 1000 )) --limit 40 --query 'events[].message' --output text 2>&1 | tr '\t' '\n' | tail -25
+          done
+
       - name: Plan
-        if: inputs.action != 'destroy'
+        if: inputs.action != 'destroy' && inputs.action != 'diagnose'
         run: |
           terraform plan -input=false -no-color -out=tfplan | tee plan.txt
           { echo '### Plan'; echo '```'; grep -E "^Plan:|No changes" plan.txt || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
@@ -82,7 +94,7 @@ jobs:
         run: terraform destroy -input=false -auto-approve -no-color
 
       - uses: actions/upload-artifact@v4
-        if: inputs.action != 'destroy'
+        if: inputs.action != 'destroy' && inputs.action != 'diagnose'
         with:
           name: terraform-${{ inputs.action }}
           path: |
