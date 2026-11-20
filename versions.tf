@@ -5,14 +5,9 @@ terraform {
     random = { source = "hashicorp/random", version = "~> 3.6" }
   }
 
-  # Keep Terraform's state safely in S3 (create the bucket once, then uncomment). See README.md.
-  # backend "s3" {
-  #   bucket       = "lastpick-terraform-state-<your-account-id>"
-  #   key          = "lastpick/terraform.tfstate"
-  #   region       = "ap-south-1"
-  #   encrypt      = true
-  #   use_lockfile = true
-  # }
+  # State is kept in S3. The bucket and key are passed at init time (-backend-config); the
+  # "Infrastructure" GitHub workflow creates the bucket lastpick-terraform-state-<account-id> automatically.
+  backend "s3" {}
 }
 
 provider "aws" {

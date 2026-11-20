@@ -1,0 +1,89 @@
+name: Infrastructure (plan / apply / destroy)
+
+# Runs Terraform on GitHub's servers, so nothing is installed on your computer.
+# Run it from the Actions tab: "Run workflow" -> pick an action.
+#   plan    : shows what would be created or changed. Changes nothing.
+#   apply   : creates or changes the AWS resources (type "yes" in confirm).
+#   destroy : deletes everything, database included (type "destroy" in confirm).
+# Needs the repo secrets AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and the repo variable ALERT_EMAIL.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "plan, apply or destroy"
+        type: choice
+        options: [plan, apply, destroy]
+        default: plan
+      confirm:
+        description: 'Type "yes" for apply, "destroy" for destroy'
+        required: false
+        default: ""
+
+concurrency: infra   # never two Terraform runs at once
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ap-south-1
+      TF_IN_AUTOMATION: "1"
+      TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+      # test setup: false lets "destroy" remove everything, database included
+      TF_VAR_protect_data: ${{ vars.PROTECT_DATA || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Check settings
+        run: |
+          [ -n "$AWS_ACCESS_KEY_ID" ] || { echo "::error::Add the repo secret AWS_ACCESS_KEY_ID"; exit 1; }
+          [ -n "$AWS_SECRET_ACCESS_KEY" ] || { echo "::error::Add the repo secret AWS_SECRET_ACCESS_KEY"; exit 1; }
+          [ -n "$TF_VAR_alert_email" ] || { echo "::error::Add the repo variable ALERT_EMAIL"; exit 1; }
+          if [ "${{ inputs.action }}" = apply ] && [ "${{ inputs.confirm }}" != yes ]; then echo "::error::Type yes in confirm to apply"; exit 1; fi
+          if [ "${{ inputs.action }}" = destroy ] && [ "${{ inputs.confirm }}" != destroy ]; then echo "::error::Type destroy in confirm to destroy"; exit 1; fi
+
+      - name: State bucket (created once)
+        run: |
+          ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+          BUCKET="lastpick-terraform-state-$ACCOUNT"
+          echo "BUCKET=$BUCKET" >> "$GITHUB_ENV"
+          if ! aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
+            aws s3api create-bucket --bucket "$BUCKET" --create-bucket-configuration LocationConstraint=ap-south-1
+            aws s3api put-bucket-versioning --bucket "$BUCKET" --versioning-configuration Status=Enabled
+            aws s3api put-public-access-block --bucket "$BUCKET" --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+            aws s3api put-bucket-encryption --bucket "$BUCKET" --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
+          fi
+
+      - name: Init
+        run: terraform init -input=false -backend-config="bucket=$BUCKET" -backend-config="key=lastpick/terraform.tfstate" -backend-config="region=ap-south-1" -backend-config="encrypt=true" -backend-config="use_lockfile=true"
+
+      - name: Plan
+        if: inputs.action != 'destroy'
+        run: |
+          terraform plan -input=false -no-color -out=tfplan | tee plan.txt
+          { echo '### Plan'; echo '```'; grep -E "^Plan:|No changes" plan.txt || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Apply
+        if: inputs.action == 'apply'
+        run: |
+          terraform apply -input=false -auto-approve tfplan
+          { echo '### Addresses'; echo '```'; terraform output -no-color customer_url partner_url admin_url deploy_role_arn 2>/dev/null; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          terraform output -json | jq 'with_entries(select(.value.sensitive|not) | .value = .value.value)' > outputs.json
+
+      - name: Destroy
+        if: inputs.action == 'destroy'
+        run: terraform destroy -input=false -auto-approve -no-color
+
+      - uses: actions/upload-artifact@v4
+        if: inputs.action != 'destroy'
+        with:
+          name: terraform-${{ inputs.action }}
+          path: |
+            plan.txt
+            outputs.json
+          if-no-files-found: ignore
+          retention-days: 14
