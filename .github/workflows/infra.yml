@@ -73,7 +73,9 @@ jobs:
               aws ecs describe-tasks --cluster lastpick --tasks $t --query 'tasks[].{created:createdAt,taskDef:taskDefinitionArn,stopped:stoppedReason,containers:containers[].{exit:exitCode,image:image,digest:imageDigest}}' --output json
             done
             echo "===== $svc: last log lines"
-            aws logs filter-log-events --log-group-name /lastpick/$svc --start-time $(( ($(date +%s) - 3600) * 1000 )) --limit 40 --query 'events[].message' --output text 2>&1 | tr '\t' '\n' | tail -25
+            S=$(aws logs describe-log-streams --log-group-name /lastpick/$svc --order-by LastEventTime --descending --max-items 1 --query 'logStreams[0].logStreamName' --output text | head -1)
+            echo "stream: $S"
+            aws logs get-log-events --log-group-name /lastpick/$svc --log-stream-name "$S" --start-from-head --limit 40 --query 'events[].message' --output text 2>&1 | tr '\t' '\n' | head -40
           done
           echo "===== images in ECR"
           aws ecr describe-images --repository-name lastpick --query 'reverse(sort_by(imageDetails,&imagePushedAt))[:3].{tags:imageTags,digest:imageDigest,pushed:imagePushedAt}' --output json
