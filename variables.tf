@@ -32,7 +32,7 @@ variable "services" {
     The three containers (ECS services). cpu: 256 = 0.25 vCPU, 512 = 0.5 vCPU. memory in MB.
     min/max = how many copies run; ECS adds copies when CPU stays above 60%.
   EOT
-  type = map(object({ cpu = number, memory = number, min = number, max = number }))
+  type        = map(object({ cpu = number, memory = number, min = number, max = number }))
   default = {
     customer = { cpu = 256, memory = 512, min = 1, max = 4 }
     partner  = { cpu = 256, memory = 512, min = 1, max = 3 }

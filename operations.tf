@@ -48,7 +48,7 @@ resource "aws_cloudwatch_metric_alarm" "errors" {
   alarm_actions       = [aws_sns_topic.alerts.arn]
 }
 locals {
-  ecs_alarms = { cpu = "CPUUtilization", memory = "MemoryUtilization" }
+  ecs_alarms      = { cpu = "CPUUtilization", memory = "MemoryUtilization" }
   ecs_alarm_pairs = merge([for svc, _ in var.services : { for k, m in local.ecs_alarms : "${svc}-${k}" => { service = svc, metric = m } }]...)
 }
 resource "aws_cloudwatch_metric_alarm" "ecs" {
@@ -68,9 +68,9 @@ resource "aws_cloudwatch_metric_alarm" "ecs" {
 
 locals {
   db_alarms = {
-    cpu     = { metric = "CPUUtilization", stat = "Average", op = "GreaterThanThreshold", threshold = 80, desc = "CPU above 80% for 15 minutes" }
-    storage = { metric = "FreeStorageSpace", stat = "Minimum", op = "LessThanThreshold", threshold = 3000000000, desc = "less than 3 GB free" }
-    memory  = { metric = "FreeableMemory", stat = "Minimum", op = "LessThanThreshold", threshold = 100000000, desc = "less than 100 MB free memory" }
+    cpu         = { metric = "CPUUtilization", stat = "Average", op = "GreaterThanThreshold", threshold = 80, desc = "CPU above 80% for 15 minutes" }
+    storage     = { metric = "FreeStorageSpace", stat = "Minimum", op = "LessThanThreshold", threshold = 3000000000, desc = "less than 3 GB free" }
+    memory      = { metric = "FreeableMemory", stat = "Minimum", op = "LessThanThreshold", threshold = 100000000, desc = "less than 100 MB free memory" }
     connections = { metric = "DatabaseConnections", stat = "Maximum", op = "GreaterThanThreshold", threshold = 70, desc = "more than 70 connections (limit is about 100 on db.t4g.micro)" }
   }
 }
@@ -141,15 +141,15 @@ resource "aws_ssm_parameter" "deploy" {
   name = "/${var.name}/deploy"
   type = "String"
   value = jsonencode({
-    repository  = aws_ecr_repository.server.repository_url
-    cluster     = aws_ecs_cluster.main.name
-    services    = [for k in keys(var.services) : aws_ecs_service.service[k].name]
-    seedTask    = aws_ecs_task_definition.service["admin"].family
-    subnets     = aws_subnet.public[*].id
+    repository    = aws_ecr_repository.server.repository_url
+    cluster       = aws_ecs_cluster.main.name
+    services      = [for k in keys(var.services) : aws_ecs_service.service[k].name]
+    seedTask      = aws_ecs_task_definition.service["admin"].family
+    subnets       = aws_subnet.public[*].id
     securityGroup = aws_security_group.app.id
-    customerUrl = "https://${aws_cloudfront_distribution.site["customer"].domain_name}"
-    partnerUrl  = "https://${aws_cloudfront_distribution.site["partner"].domain_name}"
-    adminUrl    = "https://${aws_cloudfront_distribution.site["admin"].domain_name}"
+    customerUrl   = "https://${aws_cloudfront_distribution.site["customer"].domain_name}"
+    partnerUrl    = "https://${aws_cloudfront_distribution.site["partner"].domain_name}"
+    adminUrl      = "https://${aws_cloudfront_distribution.site["admin"].domain_name}"
   })
 }
 
@@ -190,14 +190,14 @@ resource "aws_iam_role_policy" "deploy" {
         Resource = aws_ecr_repository.server.arn
       },
       {
-        Effect    = "Allow"
-        Action    = ["ecs:UpdateService", "ecs:DescribeServices"]
-        Resource  = [for k in keys(var.services) : "arn:aws:ecs:${var.region}:${data.aws_caller_identity.me.account_id}:service/${aws_ecs_cluster.main.name}/${k}"]
+        Effect   = "Allow"
+        Action   = ["ecs:UpdateService", "ecs:DescribeServices"]
+        Resource = [for k in keys(var.services) : "arn:aws:ecs:${var.region}:${data.aws_caller_identity.me.account_id}:service/${aws_ecs_cluster.main.name}/${k}"]
       },
       {
-        Effect    = "Allow"
-        Action    = "ecs:RunTask"
-        Resource  = "arn:aws:ecs:${var.region}:${data.aws_caller_identity.me.account_id}:task-definition/${aws_ecs_task_definition.service["admin"].family}:*"
+        Effect   = "Allow"
+        Action   = "ecs:RunTask"
+        Resource = "arn:aws:ecs:${var.region}:${data.aws_caller_identity.me.account_id}:task-definition/${aws_ecs_task_definition.service["admin"].family}:*"
       },
       { Effect = "Allow", Action = "ecs:DescribeTasks", Resource = "*" },
       { Effect = "Allow", Action = "iam:PassRole", Resource = [aws_iam_role.execution.arn, aws_iam_role.task.arn] },

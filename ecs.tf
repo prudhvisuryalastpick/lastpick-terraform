@@ -12,8 +12,8 @@ locals {
 # ------------------------------------------------------------------ container image registry
 resource "aws_ecr_repository" "server" {
   name                 = "${var.name}/server"
-  image_tag_mutability = "MUTABLE" # "latest" moves with each deploy; every build is also tagged with its commit
-  force_delete         = !var.protect_data # test setups: delete the images on destroy
+  image_tag_mutability = "MUTABLE"                     # "latest" moves with each deploy; every build is also tagged with its commit
+  force_delete         = !var.protect_data             # test setups: delete the images on destroy
   image_scanning_configuration { scan_on_push = true } # known-vulnerability scan of every image
   encryption_configuration { encryption_type = "AES256" }
 }
