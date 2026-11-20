@@ -70,11 +70,15 @@ jobs:
           for svc in customer partner admin; do
             echo "===== $svc: last stopped tasks"
             for t in $(aws ecs list-tasks --cluster lastpick --service-name $svc --desired-status STOPPED --max-items 2 --query 'taskArns[]' --output text | grep -v None); do
-              aws ecs describe-tasks --cluster lastpick --tasks $t --query 'tasks[].{stopped:stoppedReason,containers:containers[].{name:name,exit:exitCode,reason:reason}}' --output json
+              aws ecs describe-tasks --cluster lastpick --tasks $t --query 'tasks[].{created:createdAt,taskDef:taskDefinitionArn,stopped:stoppedReason,containers:containers[].{exit:exitCode,image:image,digest:imageDigest}}' --output json
             done
             echo "===== $svc: last log lines"
             aws logs filter-log-events --log-group-name /lastpick/$svc --start-time $(( ($(date +%s) - 3600) * 1000 )) --limit 40 --query 'events[].message' --output text 2>&1 | tr '\t' '\n' | tail -25
           done
+          echo "===== images in ECR"
+          aws ecr describe-images --repository-name lastpick --query 'reverse(sort_by(imageDetails,&imagePushedAt))[:3].{tags:imageTags,digest:imageDigest,pushed:imagePushedAt}' --output json
+          echo "===== customer task definition (image + command)"
+          aws ecs describe-task-definition --task-definition lastpick-customer --query 'taskDefinition.{rev:revision,containers:containerDefinitions[].{image:image,command:command,entryPoint:entryPoint,workdir:workingDirectory,mounts:mountPoints}}' --output json
 
       - name: Plan
         if: inputs.action != 'destroy' && inputs.action != 'diagnose'
