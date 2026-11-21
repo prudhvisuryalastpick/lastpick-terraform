@@ -23,7 +23,7 @@ resource "aws_acm_certificate" "site" {
 }
 
 resource "cloudflare_record" "cert" {
-  for_each = { for o in aws_acm_certificate.site.domain_validation_options : o.domain_name => o }
+  for_each        = { for o in aws_acm_certificate.site.domain_validation_options : o.domain_name => o }
   zone_id         = data.cloudflare_zone.main.id
   name            = trimsuffix(each.value.resource_record_name, ".")
   type            = each.value.resource_record_type
