@@ -1,5 +1,5 @@
 # E-mail one-time codes through Amazon SES, sent from no-reply@<domain>.
-#  1. apply: SES registers the domain and prints 3 DKIM records (in dns_records_to_add). Add them at GoDaddy.
+#  1. apply: SES registers the domain; Terraform adds its 3 DKIM records in Cloudflare (domain.tf).
 #  2. In the AWS console (SES > Account dashboard) request production access, so mail can go to any address.
 #  3. Set the repo variable EMAIL_READY=true and apply: sign-up then requires the e-mailed code.
 resource "aws_sesv2_email_identity" "domain" {
@@ -24,10 +24,4 @@ resource "aws_iam_role_policy" "task_email" {
 
 locals {
   mail_from = var.domain != "" && var.email_ready ? "LastPick <no-reply@${var.domain}>" : ""
-  dkim_records = var.domain != "" ? [for t in aws_sesv2_email_identity.domain[0].dkim_signing_attributes[0].tokens : {
-    purpose = "e-mail signing (DKIM)"
-    type    = "CNAME"
-    name    = "${t}._domainkey"
-    value   = "${t}.dkim.amazonses.com"
-  }] : []
 }

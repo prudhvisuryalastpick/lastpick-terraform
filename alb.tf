@@ -1,10 +1,11 @@
-# One private (internal) load balancer for all three services. It has no public address:
-# CloudFront reaches it through a VPC origin over AWS's own network.
+# One public load balancer for all three services, reachable ONLY from Cloudflare (security group: Cloudflare's
+# address ranges; requests must also carry the secret header Cloudflare adds). Cloudflare caches public offer lists
+# and serves the data to phones for free, so most traffic never reaches AWS.
 resource "aws_lb" "main" {
   name                       = var.name
-  internal                   = true
+  internal                   = false
   load_balancer_type         = "application"
-  subnets                    = aws_subnet.private[*].id
+  subnets                    = aws_subnet.public[*].id
   security_groups            = [aws_security_group.alb.id]
   idle_timeout               = 60 # the server keeps connections open 65 s, longer than this
   drop_invalid_header_fields = true
@@ -29,11 +30,14 @@ resource "aws_lb_target_group" "service" {
   }
 }
 
-resource "aws_lb_listener" "http" {
+# HTTPS with the free AWS certificate (Cloudflare connects in "Full (strict)" mode and checks it).
+resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.main.arn
-  port              = 80
-  protocol          = "HTTP"
-  # anything without CloudFront's secret header, or for an unknown service, is refused here
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = aws_acm_certificate_validation.site.certificate_arn
+  # anything without Cloudflare's secret header, or for an unknown address, is refused here
   default_action {
     type = "fixed-response"
     fixed_response {
@@ -44,19 +48,19 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-# Each CloudFront distribution adds X-LastPick-Service; the load balancer sends the request to that service.
+# customer.<domain> -> customer service, partner.<domain> -> partner, admin.<domain> -> admin.
+# The service name header is set here for the app, so nothing outside can choose it.
 resource "aws_lb_listener_rule" "service" {
   for_each     = var.services
-  listener_arn = aws_lb_listener.http.arn
+  listener_arn = aws_lb_listener.https.arn
   priority     = 10 + index(keys(var.services), each.key)
   action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.service[each.key].arn
   }
   condition {
-    http_header {
-      http_header_name = "X-LastPick-Service"
-      values           = [each.key]
+    host_header {
+      values = ["${local.hosts[each.key]}.${var.domain}"]
     }
   }
   condition {

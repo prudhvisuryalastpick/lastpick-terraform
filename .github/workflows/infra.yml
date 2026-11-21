@@ -32,7 +32,7 @@ jobs:
       TF_VAR_alert_email: ${{ vars.ALERT_EMAIL || 'prudhvisuryalastpick@gmail.com' }}
       # test setup: false lets "destroy" remove everything, database included
       TF_VAR_protect_data: ${{ vars.PROTECT_DATA || 'false' }}
-      TF_VAR_domain_ready: ${{ vars.DOMAIN_READY || 'false' }}   # rebuild: apply once with false, then set true after the certificate is issued
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}   # DNS, caching and HTTPS on Cloudflare
       # read replica off for now (creation kept failing while the main database was busy); set repo variable DB_READ_REPLICA=true to add it
       TF_VAR_email_ready: ${{ vars.EMAIL_READY || 'false' }}
       TF_VAR_db_read_replica: ${{ vars.DB_READ_REPLICA || 'false' }}
@@ -47,6 +47,7 @@ jobs:
           [ -n "$AWS_ACCESS_KEY_ID" ] || { echo "::error::Add the repo secret AWS_ACCESS_KEY_ID"; exit 1; }
           [ -n "$AWS_SECRET_ACCESS_KEY" ] || { echo "::error::Add the repo secret AWS_SECRET_ACCESS_KEY"; exit 1; }
           [ -n "$TF_VAR_alert_email" ] || { echo "::error::Add the repo variable ALERT_EMAIL"; exit 1; }
+          if [ "${{ inputs.action }}" != diagnose ]; then [ -n "$CLOUDFLARE_API_TOKEN" ] || { echo "::error::Add the repo secret CLOUDFLARE_API_TOKEN (Cloudflare > My Profile > API Tokens)"; exit 1; }; fi
           if [ "${{ inputs.action }}" = apply ] && [ "${{ inputs.confirm }}" != yes ]; then echo "::error::Type yes in confirm to apply"; exit 1; fi
           if [ "${{ inputs.action }}" = destroy ] && [ "${{ inputs.confirm }}" != destroy ]; then echo "::error::Type destroy in confirm to destroy"; exit 1; fi
 

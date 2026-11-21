@@ -36,7 +36,7 @@ resource "aws_cloudfront_cache_policy" "feeds" {
 }
 
 resource "aws_cloudfront_distribution" "site" {
-  # off until AWS verifies the account for CloudFront; API Gateway (apigw.tf) serves the sites meanwhile
+  # not used: Cloudflare (domain.tf) serves the sites. Kept for reference; use_cloudfront stays false.
   for_each        = var.use_cloudfront ? var.services : {}
   enabled         = true
   comment         = "LastPick ${each.key}"

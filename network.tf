@@ -67,28 +67,17 @@ resource "aws_vpc_endpoint" "s3" {
   vpc_endpoint_type = "Gateway"
 }
 
-# Security groups: CloudFront -> load balancer -> containers -> database. Nothing else can reach anything.
-data "aws_ec2_managed_prefix_list" "cloudfront" {
-  name = "com.amazonaws.global.cloudfront.origin-facing"
-}
-
+# Security groups: Cloudflare -> load balancer -> containers -> database. Nothing else can reach anything.
 resource "aws_security_group" "alb" {
   name        = "${var.name}-alb"
-  description = "LastPick load balancer - CloudFront only"
+  description = "LastPick load balancer - Cloudflare only"
   vpc_id      = aws_vpc.main.id
   ingress {
-    description     = "CloudFront (VPC origin)"
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    prefix_list_ids = [data.aws_ec2_managed_prefix_list.cloudfront.id]
-  }
-  ingress {
-    description     = "API Gateway (VPC link)"
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    security_groups = [aws_security_group.apigw.id]
+    description = "Cloudflare (HTTPS)"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = var.cloudflare_ipv4
   }
   egress {
     description = "Containers"

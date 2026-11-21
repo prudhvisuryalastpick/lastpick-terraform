@@ -119,7 +119,7 @@ resource "aws_ecs_task_definition" "service" {
       { name = "NODE_ENV", value = "production" },
       { name = "PORT", value = "8080" },
       { name = "RUN_WORKER", value = "1" }, # jobs are claimed with SKIP LOCKED, so every container can help
-      { name = "PROXY_HOPS", value = "2" }, # CloudFront + load balancer
+      { name = "PROXY_HOPS", value = "2" }, # visitor address comes from CF-Connecting-IP (Cloudflare)
       { name = "PGHOST", value = aws_db_instance.main.address },
       { name = "PGHOST_READ", value = var.db_read_replica ? aws_db_instance.replica[0].address : "" },
       { name = "PGPORT", value = "5432" },
